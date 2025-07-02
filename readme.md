@@ -1,135 +1,194 @@
-# WSL Development Environment Setup
+# Development Environment Setup
 
-## Prerequisites
+## Overview
 
-- Windows 10/11 with WSL2 installed
-- Docker Desktop for Windows
-- SSH key configured with your Git provider (GitLab in our case)
+This guide covers setting up the Pulse development environment on Linux (native or WSL2). For WSL2 setup on Windows, see [wsl_setup.md](wsl_setup.md).
 
-## Install and Configure WSL
+## Repository Setup
 
-In Windows PowerShell as Administrator:
+In your terminal:
 
 ```
-wsl --install -d Ubuntu
-```
-
-After Installation, create Username and Password when prompted (Don't skip through otherwise when running you will work in root instead of your user)
-
-Set Ubuntu as the default distribution:
-
-```
-wsl --set-default Ubuntu
-Ubuntu config --default-user your-username
+cd ~
+cd home
+mkdir -p dev
+cd dev
+git clone https://gitlab.wa.spectranetix.com/pulse/pulse/-/tree/main?ref_type=heads Pulse
+cd Pulse
 ```
 
 ### Troubleshooting
 
-If you get root@... instead of your username, set default user:
+**Repository not Found or Permission Denied problems**
 
-1. ubuntu config --default-user your-actual-username
-2. wsl shutdown
-3. wsl
+1. Verify that you have access to the repository in GitLab
+2. Check the exact repository URL in GitLab
+3. Ensure you are using the SSH clone URL (starts with git@)
 
-## Generate SSH Keys (If you don't have them)
+**SSH Key not being used problem**
 
-Generate new SSH key pair:
-
-```
-ssh-keygen -t rsa -b 4096 -C "your.email@Pacific-Defense.com"
-```
-
-When prompted:
-- Press Enter to save to default location :: /home/username/.ssh/id_rsa
-- Enter a passphrase (I just skipped this and left it blank)
-- Confirm passphrase (Again, I just left this blank and pressed enter)
-
-Display your Public Key:
+1. Test with verbose SSH to see what's going on
 
 ```
-cat ~/.ssh/id_rsa.pub
+ssh -vT git@gitlab.wa.spectranetix.com
 ```
 
-## Add SSH Key to Gitlab
-
-1. Copy the entire output from cat ~/.ssh/id_rsa.pub
-2. Go to GitLab in your browser
-3. Click your profile picture --> Edit Profile
-4. Go to SSH Keys in the left sidebar
-5. Paste your public key in the "Key" field
-6. Give it a title (I named mine, "MYCOMPUTER")
-7. Click "Add Key"
-
-## Configure SSH Agent and Test Connection
-
-In Ubuntu Terminal Start ssh agent and add key
+## Initialize Git Submodules
 
 ```
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_rsa
+git submodule update --init --recursive
 ```
 
-Then test your gitlabs connection
+Then open in VSCode for development
 
 ```
-ssh -T git@gitlab.wa.spectranetix.com
+code .
 ```
-
-If it worked properly you should see "Welcome to GitLab, Username!"
 
 ### Troubleshooting
 
-**Host Key verifaction failed problem:**
+**Permission denied problem for specific submodules**
 
-You have to accept the host key when prompted or add it as a known host:
+1. You need access to additional repositories to initialize these.
+2. Contact Kyle or whoever your GitLab admin is and ask them to grant access to:
+   - each submodule repository individually
+   - the gitlab group/organization containing the submodules (both as developer role)
 
-```
-ssh-keyscan gitlab.wa.spectranetix.com >> ~/.ssh/known_hosts
-```
+**Some submodules don't work, others do problem**
 
-**Permission denied problem:**
-
-1. Double check that you copied the ENTIRE public key (including ssh-rsa and email)
-2. Verify the key was added to Gitlab correctly
-3. Make sure you are using the right GitLab domain
-
-## Alternative Steps
-
-Let's assume you already went through the ssh key and git clone steps on your C drive. You want to mount everything to home in wsl, and this is how you can do that:
-
-All of the following steps will be done in your Ubuntu terminal then you can do "code ." to start accessing the specific code files in VSCode.
-
-If you already have SSH keys on Windows:
+1. Test access to specific submodule repositories
 
 ```
-mkdir -p ~/.ssh
+git ls-remote specificsubmodulerepo.git
 ```
 
-Copy from windows:
+## Docker Development Build
+
+Export the Docker GID:
 
 ```
-cp /mnt/c/Users/User.Name/.ssh/id_rsa ~/.ssh/
-cp /mnt/c/Users/User.Name/.ssh/id_rsa.pub ~/.ssh/
+export DOCKER_GID=$(getent group docker | cut -d: -f3)
 ```
 
-set correct permissions:
+Build the development containers:
 
 ```
-chmod 600 ~/.ssh/id_rsa
-chmod 644 ~/.ssh/id_rsa.pub
+docker compose -f docker/docker-compose.yml build
 ```
 
-add to SSH agent
+## Running with Docker Compose
+
+Start the development environment:
 
 ```
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_rsa
+docker compose -f docker/docker-compose.yml up
 ```
 
-test connection
+Use ctrl-c to stop, then run:
 
 ```
-ssh -T git@gitlab.wa.spectranetix.com
+docker compose -f docker/docker-compose.yml down
 ```
 
-After these go ahead and continue from step 5 onwards.
+## Python Local Development Environment
+
+Set up the Python virtual environment:
+
+```
+source scripts/setup-local-env.sh
+source env/bin/activate
+python3 plugins/pnt/collector.py
+source deactivate
+```
+
+### Troubleshooting Python Setup
+
+You will get a big error when running the first command 'source scripts/setup-local-env.sh'
+
+```
+bash: env/bin/activate: No such file or directory
+Installing Python dependencies...
+error: externally-managed-environment
+
+× This environment is externally managed
+╰─> To install Python packages system-wide, try apt install
+    python3-xyz, where xyz is the package you are trying to
+    install.
+ 
+    If you wish to install a non-Debian-packaged Python package,
+    create a virtual environment using python3 -m venv path/to/venv.
+    Then use path/to/venv/bin/python and path/to/venv/bin/pip. Make
+    sure you have python3-full installed.
+ 
+    If you wish to install a non-Debian packaged Python application,
+    it may be easiest to use pipx install xyz, which will manage a
+    virtual environment for you. Make sure you have pipx installed.
+ 
+    See /usr/share/doc/python3.12/README.venv for more information....
+```
+
+This occurs because you don't have python virtual environment support installed and the virtual env isn't setup properly. Follow the steps below to fix:
+
+```
+sudo apt install python3.12-venv -y
+python3 -m venv pulse-env
+```
+
+Make sure the environment was created:
+
+```
+ls -la pulse-env/
+```
+
+Activate the environment:
+
+```
+source pulse-env/bin/activate
+```
+
+Install all the requirements:
+
+```
+pip install -r requirements.txt
+```
+
+Run the setup script:
+
+```
+source scripts/setup-local-env.sh
+```
+
+## Release Generation and Installation
+
+Generate a release package in the project root (/home/dev/Pulse):
+
+```
+./scripts/generate-release.sh
+```
+
+Then on your target device you should get a tar file (pulse-service-v0.1-beta.tar.gz not pulse-service.tar.gz) untar it:
+
+```
+tar -xzvf pulse-service-v0.1-beta.tar.gz -C /opt
+cd /opt/pulse-service/
+```
+
+Then run the installation script:
+
+```
+./service-install.sh
+```
+
+### Troubleshooting Installation
+
+**open /opt/pulse-service/exported-images/*.tar: no such file or directory problem**
+
+1. This will happen if you do cd /opt/pulse-service because we don't save anything there everything is in the pulse folder in the pulse-service directory.
+
+```
+cd ..
+cd ..
+cd home/dev/Pulse
+cd pulse-service
+./service-install.sh
+```
