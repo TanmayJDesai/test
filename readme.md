@@ -11,9 +11,7 @@
 In Windows PowerShell as Administrator:
 
 ```
-
 wsl --install -d Ubuntu
-
 ```
 
 After Installation, create Username and Password when prompted (Don't skip through otherwise when running you will work in root instead of your user)
@@ -21,11 +19,8 @@ After Installation, create Username and Password when prompted (Don't skip throu
 Set Ubuntu as the default distribution:
 
 ```
-
 wsl --set-default Ubuntu
-
 Ubuntu config --default-user your-username
-
 ```
 
 ### Troubleshooting
@@ -43,9 +38,7 @@ For detailed SSH key setup instructions, see the [GitLab SSH documentation](http
 Generate new SSH key pair:
 
 ```
-
 ssh-keygen -t rsa -b 4096 -C "your.email@Pacific-Defense.com"
-
 ```
 
 When prompted:
@@ -56,9 +49,7 @@ When prompted:
 Display your Public Key:
 
 ```
-
-cat ~/.ssh/id\\\_rsa.pub
-
+cat ~/.ssh/id_rsa.pub
 ```
 
 ## Add SSH Key to Gitlab
@@ -78,19 +69,14 @@ For complete instructions, see the [GitLab SSH documentation](https://gitlab.wa.
 In Ubuntu Terminal Start ssh agent and add key
 
 ```
-
 eval "$(ssh-agent -s)"
-
-ssh-add ~/.ssh/id\\\_rsa
-
+ssh-add ~/.ssh/id_rsa
 ```
 
 Then test your gitlabs connection
 
 ```
-
 ssh -T git@gitlab.wa.spectranetix.com
-
 ```
 
 If it worked properly you should see "Welcome to GitLab, Username!"
@@ -102,9 +88,7 @@ If it worked properly you should see "Welcome to GitLab, Username!"
 You have to accept the host key when prompted or add it as a known host:
 
 ```
-
-ssh-keyscan gitlab.wa.spectranetix.com >> ~/.ssh/known\\\_hosts
-
+ssh-keyscan gitlab.wa.spectranetix.com >> ~/.ssh/known_hosts
 ```
 
 **Permission denied problem:**
@@ -122,47 +106,34 @@ All of the following steps will be done in your Ubuntu terminal then you can do 
 If you already have SSH keys on Windows:
 
 ```
-
 mkdir -p ~/.ssh
-
 ```
 
 Copy from windows:
 
 ```
-
-cp /mnt/c/Users/User.Name/.ssh/id\\\_rsa ~/.ssh/
-
-cp /mnt/c/Users/User.Name/.ssh/id\\\_rsa.pub ~/.ssh/
-
+cp /mnt/c/Users/User.Name/.ssh/id_rsa ~/.ssh/
+cp /mnt/c/Users/User.Name/.ssh/id_rsa.pub ~/.ssh/
 ```
 
 set correct permissions:
 
 ```
-
-chmod 600 ~/.ssh/id\\\_rsa
-
-chmod 644 ~/.ssh/id\\\_rsa.pub
-
+chmod 600 ~/.ssh/id_rsa
+chmod 644 ~/.ssh/id_rsa.pub
 ```
 
 add to SSH agent
 
 ```
-
 eval "$(ssh-agent -s)"
-
-ssh-add ~/.ssh/id\\\_rsa
-
+ssh-add ~/.ssh/id_rsa
 ```
 
 test connection
 
 ```
-
 ssh -T git@gitlab.wa.spectranetix.com
-
 ```
 
 After these go ahead and continue from step 5 onwards.
