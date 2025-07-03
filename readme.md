@@ -165,4 +165,3 @@ ssh -T git@gitlab.wa.spectranetix.com
 
 ```
 
-After these go ahead and continue from step 5 onwards.
