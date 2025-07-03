@@ -1,69 +1,136 @@
-
-# Integration Quirks and Development Tips
-
-## Overview
-
-This document covers integration notes and quirks with the Pulse tooling that have popped up as part of this tooling's development.
-
-## mDNS Discovery
-
-Most services that Pulse is interested in publish themselves over mDNS so as to more easily discover devices of a particular type.
-
-For instance, VICTORY announcement strings over Zeroconf appear as `_vic-mgt._tcp.local.`, while SOSA services use `_sosa-mgt._tcp.local.`.
-
-Announcement strings can also have substrings which more accurately describe the service, be it `_sys-mgr._sub.` for System Manager or `_pic._sub.` for Plug-In Cards.
-
-### Quirks
-
-During integration with the chassis, it was noted that VICTORY services will quickly respond with the host platform's Zeroconf targets, but will take a more significant amount of time to publish their other interfaces.
-
-For example, say the PNT card has the following 3 interfaces that it's using for its services: `eth0`, `eth1`, and `eth2`.
-
-* When running on the SBC, the PNT service's Zeroconf utility published their endpoint address as that specific to `eth1`.
-* The subsequent publication of the other interfaces didn't come till 20-30 seconds later.
-
-All this to say, it's beneficial to be generous with the times for the mDNS environment variables, specifically the "MDNS_SETTLE_DELAY". This allows the plugin to listen for a decent amount of time (say 30 seconds) before it determines that it's found as many devices as it could.
-
-Unsure as to why the discovery decides to delay those ethernet interfaces until significantly later on, but they do appear consistently afterwards.
-
-## Docker Installation Issues
-
-There have been issues when performing a second installation with the `service-install.sh` script. If the device has already had its Telegraf docker image loaded, loading the second image after having run the first may result in some odd behavior - specifically, if running with the newer image, it may think that certain buckets already exist.
-
-### Solution
-
-When running the `service-install.sh` a second time on the same device, be sure to run a `docker container prune` and `docker image prune` prior to installing (or after running - the services will need to be stopped before cleaning up the docker space). This can be done by running `systemctl stop pulse.service`.
-After the dangling images and stopped containers have been cleaned up the leftover buckets should no longer throw any errors.
-
-## Docker Container Conflicts
-
-**✘ Container influxdb    Error response from daemon: Conflict. The cont... problem**
-
-This basically just means there are already instances of these containers (if you just clear influxdb, Grafana and telegraf will still throw an error so follow the instructions below):
-
+Development Environment Setup
+Overview
+This guide covers setting up the Pulse development environment on Linux (native or WSL2). For WSL2 setup on Windows, see wsl_setup.md.
+Repository Setup
+In your terminal:
+```bash
+cd ~
+cd home
+mkdir -p dev
+cd dev
+git clone https://gitlab.wa.spectranetix.com/pulse/pulse/-/tree/main?ref\_type=heads Pulse
+cd Pulse
 ```
-docker compose -f docker/docker-compose.yml down
-docker container prune -f
-docker rm -f influxdb grafana telegraf-collector
-export DOCKER_GID=$(getent group docker | cut -d: -f3)
+Troubleshooting
+Repository not Found or Permission Denied problems
+1.	Verify that you have access to the repository in GitLab
+2.	Check the exact repository URL in GitLab
+3.	Ensure you are using the SSH clone URL (starts with git@)
+SSH Key not being used problem
+1.	Test with verbose SSH to see what's going on
+```bash
+ssh -vT git@gitlab.wa.spectranetix.com
+```
+Initialize Git Submodules
+```bash
+git submodule update --init --recursive
+```
+Then open in VSCode for development
+```bash
+code .
+```
+Troubleshooting
+Permission denied problem for specific submodules
+1.	You need access to additional repositories to initialize these.
+2.	Contact Kyle or whoever your GitLab admin is and ask them to grant access to:
+⦁	each submodule repository individually
+⦁	the gitlab group/organization containing the submodules (both as developer role)
+Some submodules don't work, others do problem
+1.	Test access to specific submodule repositories
+```bash
+git ls-remote specificsubmodulerepo.git
+```
+Docker Development Build
+Export the Docker GID:
+```bash
+export DOCKER\_GID=$(getent group docker | cut -d: -f3)
+```
+Build the development containers:
+```bash
+docker compose -f docker/docker-compose.yml build
+```
+Running with Docker Compose
+Start the development environment:
+```bash
 docker compose -f docker/docker-compose.yml up
 ```
+Use ctrl-c to stop, then run:
+```bash
+docker compose -f docker/docker-compose.yml down
+```
+Python Local Development Environment
+Set up the Python virtual environment:
+```bash
+source scripts/setup-local-env.sh
+source env/bin/activate
+python3 plugins/pnt/collector.py
+source deactivate # To exit the environment
+```
+Troubleshooting Python Setup
+You will get a big error when running the first command 'source scripts/setup-local-env.sh'
+```
+bash: env/bin/activate: No such file or directory
+Installing Python dependencies...
+error: externally-managed-environment
 
-Then you can access the influxdb to start querying at localhost:8086
-The username and password can be found in docker/secrets directory
-
-## Docker WSL2 Integration Issues
-
-**Docker not part of WSL2 instance or docker errors**
-
-1. Can typically be solved by going to docker desktop
-2. Settings --> General --> "Use the WSL 2 based engine" --> Apply and Restart
-3. Settings --> Resources --> WSL Integration --> Make sure both Ubuntu and Enable integration with my default WSL distro are selected --> Apply and Restart
-
-**Python Environment Issues**
-
-**SecurityError when running the activate scripts function**
-
-This happens because of some permission issues.
-
-For detailed Python setup instructions, see [python_setup.md](python_setup.md).
+× This environment is externally managed
+╰─> To install Python packages system-wide, try apt install
+    python3-xyz, where xyz is the package you are trying to
+    install.
+ 
+    If you wish to install a non-Debian-packaged Python package,
+    create a virtual environment using python3 -m venv path/to/venv.
+    Then use path/to/venv/bin/python and path/to/venv/bin/pip. Make
+    sure you have python3-full installed.
+ 
+    If you wish to install a non-Debian packaged Python application,
+    it may be easiest to use pipx install xyz, which will manage a
+    virtual environment for you. Make sure you have pipx installed.
+ 
+    See /usr/share/doc/python3.12/README.venv for more information....
+```
+This occurs because you don't have python virtual environment support installed and the virtual env isn't setup properly. Follow the steps below to fix:
+```bash
+sudo apt install python3.12-venv -y
+python3 -m venv pulse-env
+```
+Make sure the environment was created:
+```bash
+ls -la pulse-env/
+```
+Activate the environment:
+```bash
+source pulse-env/bin/activate
+```
+Install all the requirements:
+```bash
+pip install -r requirements.txt
+```
+Run the setup script:
+```bash
+source scripts/setup-local-env.sh
+```
+Release Generation and Installation
+Generate a release package in the project root (/home/dev/Pulse):
+```bash
+./scripts/generate-release.sh
+```
+Then on your target device you should get a tar file (pulse-service-v0.1-beta.tar.gz not pulse-service.tar.gz) untar it:
+```bash
+tar -xzvf pulse-service-v0.1-beta.tar.gz -C /opt
+cd /opt/pulse-service/
+```
+Then run the installation script:
+```bash
+./service-install.sh
+```
+Troubleshooting Installation
+open /opt/pulse-service/exported-images/*.tar: no such file or directory problem
+1.	This will happen if you do cd /opt/pulse-service because we don't save anything there everything is in the pulse folder in the pulse-service directory.
+```bash
+cd ..
+cd ..
+cd home/dev/Pulse
+cd pulse-service
+./service-install.sh
+```
