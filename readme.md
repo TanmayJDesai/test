@@ -1,122 +1,278 @@
-# Python Local Development Environment Setup
+\# WSL Development Environment Setup
 
-## Overview
 
-This guide covers setting up the Python development environment for Pulse. The default setup script can be troublesome, so this document provides a step-by-step approach to get your Python environment working correctly.
 
-## Initial Setup Attempt
+\## Prerequisites
 
-First, try the standard setup process:
 
-```
-source scripts/setup-local-env.sh
-source env/bin/activate
-python3 plugins/pnt/collector.py
-source deactivate
-```
 
-## Troubleshooting Common Python Setup Issues
+\- Windows 10/11 with WSL2 installed
 
-You will likely get a big error when running the first command 'source scripts/setup-local-env.sh'
+\- Docker Desktop for Windows
 
-```
-bash: env/bin/activate: No such file or directory
-Installing Python dependencies...
-error: externally-managed-environment
+\- SSH key configured with your Git provider (GitLab in our case)
 
-× This environment is externally managed
-╰─> To install Python packages system-wide, try apt install
-    python3-xyz, where xyz is the package you are trying to
-    install.
- 
-    If you wish to install a non-Debian-packaged Python package,
-    create a virtual environment using python3 -m venv path/to/venv.
-    Then use path/to/venv/bin/python and path/to/venv/bin/pip. Make
-    sure you have python3-full installed.
- 
-    If you wish to install a non-Debian packaged Python application,
-    it may be easiest to use pipx install xyz, which will manage a
-    virtual environment for you. Make sure you have pipx installed.
- 
-    See /usr/share/doc/python3.12/README.venv for more information....
-```
 
-## Manual Virtual Environment Setup
 
-This occurs because you don't have python virtual environment support installed and the virtual env isn't setup properly. Follow the steps below to fix:
+\## Install and Configure WSL
 
-### Install Python Virtual Environment Support
+
+
+In Windows PowerShell as Administrator:
+
+
 
 ```
-sudo apt install python3.12-venv -y
-```
 
-### Create Virtual Environment
+wsl --install -d Ubuntu
 
 ```
-python3 -m venv pulse-env
-```
 
-### Verify Environment Creation
 
-Make sure the environment was created:
 
-```
-ls -la pulse-env/
-```
+After Installation, create Username and Password when prompted (Don't skip through otherwise when running you will work in root instead of your user)
 
-### Activate the Environment
+
+
+Set Ubuntu as the default distribution:
+
+
 
 ```
-source pulse-env/bin/activate
-```
 
-### Install Requirements
+wsl --set-default Ubuntu
 
-Install all the requirements:
+Ubuntu config --default-user your-username
 
 ```
-pip install -r requirements.txt
+
+
+
+\### Troubleshooting
+
+
+
+If you get root@... instead of your username, set default user:
+
+
+
+1\. ubuntu config --default-user your-actual-username
+
+2\. wsl shutdown
+
+3\. wsl
+
+
+
+\## Generate SSH Keys (If you don't have them)
+
+
+
+For detailed SSH key setup instructions, see the \[GitLab SSH documentation](https://gitlab.wa.spectranetix.com/help/user/ssh.md).
+
+
+
+Generate new SSH key pair:
+
+
+
 ```
 
-### Run Setup Script
-
-Now run the setup script:
+ssh-keygen -t rsa -b 4096 -C "your.email@Pacific-Defense.com"
 
 ```
-source scripts/setup-local-env.sh
+
+
+
+When prompted:
+
+\- Press Enter to save to default location :: /home/username/.ssh/id\_rsa
+
+\- Enter a passphrase (I just skipped this and left it blank)
+
+\- Confirm passphrase (Again, I just left this blank and pressed enter)
+
+
+
+Display your Public Key:
+
+
+
 ```
 
-## Running Python Components
-
-With the virtual environment activated, you can now run Python components:
+cat ~/.ssh/id\_rsa.pub
 
 ```
-python3 plugins/pnt/collector.py
+
+
+
+\## Add SSH Key to Gitlab
+
+
+
+For complete instructions, see the \[GitLab SSH documentation](https://gitlab.wa.spectranetix.com/help/user/ssh.md).
+
+
+
+1\. Copy the entire output from cat ~/.ssh/id\_rsa.pub
+
+2\. Go to GitLab in your browser
+
+3\. Click your profile picture --> Edit Profile
+
+4\. Go to SSH Keys in the left sidebar
+
+5\. Paste your public key in the "Key" field
+
+6\. Give it a title (I named mine, "MYCOMPUTER")
+
+7\. Click "Add Key"
+
+
+
+\## Configure SSH Agent and Test Connection
+
+
+
+In Ubuntu Terminal Start ssh agent and add key
+
+
+
 ```
 
-## Deactivating the Environment
+eval "$(ssh-agent -s)"
 
-To exit the virtual environment:
+ssh-add ~/.ssh/id\_rsa
 
 ```
-deactivate
+
+
+
+Then test your gitlabs connection
+
+
+
 ```
 
-## Windows-Specific Issues
+ssh -T git@gitlab.wa.spectranetix.com
 
-### SecurityError when running the activate scripts function
-
-This happens because of some permission issues on Windows/WSL.
-
-**Temporary Fix** (will have to do everytime):
-```
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
-**Permanent Fix** (only have to do once):
-```
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
+
+If it worked properly you should see "Welcome to GitLab, Username!"
+
+
+
+\### Troubleshooting
+
+
+
+\*\*Host Key verifaction failed problem:\*\*
+
+
+
+You have to accept the host key when prompted or add it as a known host:
+
+
+
 ```
 
-Run either command and then re-run from `python3 -m venv pulse-env` and you will have your environment setup.
+ssh-keyscan gitlab.wa.spectranetix.com >> ~/.ssh/known\_hosts
+
+```
+
+
+
+\*\*Permission denied problem:\*\*
+
+
+
+1\. Double check that you copied the ENTIRE public key (including ssh-rsa and email)
+
+2\. Verify the key was added to Gitlab correctly
+
+3\. Make sure you are using the right GitLab domain
+
+
+
+\## Alternative Steps
+
+
+
+Let's assume you already went through the ssh key and git clone steps on your C drive. You want to mount everything to home in wsl, and this is how you can do that:
+
+
+
+All of the following steps will be done in your Ubuntu terminal then you can do "code ." to start accessing the specific code files in VSCode.
+
+
+
+If you already have SSH keys on Windows:
+
+
+
+```
+
+mkdir -p ~/.ssh
+
+```
+
+
+
+Copy from windows:
+
+
+
+```
+
+cp /mnt/c/Users/User.Name/.ssh/id\_rsa ~/.ssh/
+
+cp /mnt/c/Users/User.Name/.ssh/id\_rsa.pub ~/.ssh/
+
+```
+
+
+
+set correct permissions:
+
+
+
+```
+
+chmod 600 ~/.ssh/id\_rsa
+
+chmod 644 ~/.ssh/id\_rsa.pub
+
+```
+
+
+
+add to SSH agent
+
+
+
+```
+
+eval "$(ssh-agent -s)"
+
+ssh-add ~/.ssh/id\_rsa
+
+```
+
+
+
+test connection
+
+
+
+```
+
+ssh -T git@gitlab.wa.spectranetix.com
+
+```
+
+
+
+After these go ahead and continue from step 5 onwards.
+
