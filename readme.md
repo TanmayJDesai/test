@@ -8,18 +8,22 @@ This document covers integration notes and quirks with the Pulse tooling that ha
 ## mDNS Discovery
 
 Most services that Pulse is interested in publish themselves over mDNS so as to more easily discover devices of a particular type.
+
 For instance, VICTORY announcement strings over Zeroconf appear as `_vic-mgt._tcp.local.`, while SOSA services use `_sosa-mgt._tcp.local.`.
+
 Announcement strings can also have substrings which more accurately describe the service, be it `_sys-mgr._sub.` for System Manager or `_pic._sub.` for Plug-In Cards.
 
 ### Quirks
 
 During integration with the chassis, it was noted that VICTORY services will quickly respond with the host platform's Zeroconf targets, but will take a more significant amount of time to publish their other interfaces.
+
 For example, say the PNT card has the following 3 interfaces that it's using for its services: `eth0`, `eth1`, and `eth2`.
 
 * When running on the SBC, the PNT service's Zeroconf utility published their endpoint address as that specific to `eth1`.
 * The subsequent publication of the other interfaces didn't come till 20-30 seconds later.
 
 All this to say, it's beneficial to be generous with the times for the mDNS environment variables, specifically the "MDNS_SETTLE_DELAY". This allows the plugin to listen for a decent amount of time (say 30 seconds) before it determines that it's found as many devices as it could.
+
 Unsure as to why the discovery decides to delay those ethernet interfaces until significantly later on, but they do appear consistently afterwards.
 
 ## Docker Installation Issues
