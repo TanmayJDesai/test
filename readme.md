@@ -91,17 +91,6 @@ Use ctrl-c to stop, then run:
 docker compose -f docker/docker-compose.yml down
 ```
 
-## Python Local Development Environment
-
-Set up the Python virtual environment:
-
-```bash
-source scripts/setup-local-env.sh
-source env/bin/activate
-python3 plugins/pnt/collector.py
-source deactivate # To exit the environment
-```
-
 ## Release Generation and Installation
 
 Generate a release package in the project root (/home/dev/Pulse):
