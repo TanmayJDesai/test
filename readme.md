@@ -1,30 +1,3 @@
-The specific ones I know I use : bucket/measurement/tags/fields paradigm are: 
-
-get_device_description                   - getDeviceDescription
-get_device_status                        - getDeviceStatus
-get_file_list                            - getFileList
-get_current_mora_configuration           - getCurrentMoraConfiguration
-set_current_mora_configuration           - setCurrentMoraConfiguration
-get_available_mora_configurations        - getAvailableMoraConfigurations
-run_built_in_test 		         - runBuiltInTest
-get_built_in_test_results	         - getBuiltInTestResults
-send_command			         - sendCommand
-get_signal_ports 		         - getSignalPorts
-get_signal_port_description              - getSignalPortDescription
-get_signal_port_default_performance_data - getSignalPortDefaultPerformanceData
-reserve_signal_port			 - 
-release_signal_port			 - releaseSignalPort
-get_signal_port_reservations 		 - getSignalPortReservations
-get_static_external_connection_map	 - getStaticExternalConnectionMap
-get_static_internal_connection_map 	 - getStaticInternalConnectionMap
-get_internal_reference_connections 	 - getInternalReferenceConnections
-get_antenna_arrays  			 - getAntennaArrays
-get_manifold_bands 			 - getManifoldBands
-pull_file 				 - pullFile
-delete_file				 - deleteFile
-
-Organization: 
-
 # MORA InfluxDB Schema
 
 ## Bucket Structure
